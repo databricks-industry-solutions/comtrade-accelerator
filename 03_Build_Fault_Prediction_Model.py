@@ -346,7 +346,7 @@ with mlflow.start_run(run_name='final') as run:
 
   # log model
   mlflow.tensorflow.log_model(
-    model, 
+    model=model, 
     artifact_path='model',
     registered_model_name=config['model_name']
     )
@@ -354,6 +354,14 @@ with mlflow.start_run(run_name='final') as run:
 print('Precision: ',precision)
 print('Recall:    ',recall)
 print('Loss:      ',loss)
+
+# COMMAND ----------
+
+mlflow.tensorflow.log_model(
+    model, 
+    artifact_path='model',
+    registered_model_name=config['model_name']
+    )
 
 # COMMAND ----------
 

@@ -3,6 +3,10 @@
 
 # COMMAND ----------
 
+# MAGIC %md In this notebook, we combine all the ETL steps from notebook 02 with the ML model trained in notebook 03 to build a DLT pipeline for end-to-end model inference. 
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Imports & Constants
 
@@ -28,6 +32,7 @@ import mlflow.keras as ml_keras
 
 # COMMAND ----------
 
+# DBTITLE 1,Configure the column names in our tables and data source path
 FILENAME = "filename"
 DIRECTORY = "directory"
 CONTENT = "content"
@@ -52,7 +57,8 @@ PHASE = "phase"
 ANALOG_CHANNEL_NAMES = "analog_channel_names"
 STATUS_CHANNEL_NAMES = "status_channel_names"
 
-COMTRADE_DELTA_LAKE_PATH = "/FileStore/tables/colton/ieee_transients_comtrade_v3"
+# This is the path where new COMTRADE files (.cfg, .dat) stream in. Here we reuse the same source data for model training for illustration. In realistic deployments this would be a diffent path.
+COMTRADE_DELTA_LAKE_PATH = "s3://db-gtm-industry-solutions/data/rcg/comtrade/source"
 
 # COMMAND ----------
 
@@ -84,7 +90,7 @@ def config_files_bronze():
         .readStream
         .format("cloudFiles")
         .option("cloudFiles.format", "binaryfile")
-        .option("pathGlobFilter", "*.cfg")
+        .option("pathGlobFilter", "*.cfg") # we look for all files in .cfg format ignoring the folder structure they come in
         .load(COMTRADE_DELTA_LAKE_PATH)
         .withColumn(FILENAME, F.element_at(F.split(F.input_file_name(),"\."),1))
         .withColumn(CONTENTS_CFG, F.col(CONTENT).cast("string"))
@@ -111,7 +117,7 @@ def dat_files_bronze():
         .readStream
         .format("cloudFiles")
         .option("cloudFiles.format", "binaryfile")
-        .option("pathGlobFilter", "*.dat")
+        .option("pathGlobFilter", "*.dat") # we look for all files in .dat format ignoring the folder structure they come in
         .load(COMTRADE_DELTA_LAKE_PATH)
         .withColumn(FILENAME, F.element_at(F.split(F.input_file_name(),"\."),1))
         .withColumnRenamed(CONTENT,CONTENTS_DAT) # Rename the content column

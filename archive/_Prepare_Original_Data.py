@@ -45,7 +45,7 @@ from datetime import datetime
 # COMMAND ----------
 
 # DBTITLE 1,Copy source data into input path - this can take more than an hour
-# dbutils.fs.cp(config['source_path'], config['input_path'], True)
+dbutils.fs.cp(config['source_path'], config['input_path'], True)
 
 # COMMAND ----------
 
@@ -289,3 +289,11 @@ plt.show()
 # MAGIC |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
 # MAGIC | comtrade | A module designed to read Common Format for Transient Data Exchange (COMTRADE) file format |  MIT | https://pypi.org/project/comtrade/                       |
 # MAGIC | comtradehandlers | File handlers for the COMTRADE format| MIT | https://github.com/relihanl/comtradehandlers.git#egg=comtradehandlers |
+
+# COMMAND ----------
+
+dbutils.fs.cp("/tmp/comtrade/output/transient disturbances/", "s3://db-gtm-industry-solutions/data/rcg/comtrade/source/", True)
+
+# COMMAND ----------
+
+list_folder_contents("s3://db-gtm-industry-solutions/data/rcg/comtrade/source/")

@@ -32,9 +32,11 @@ _ = spark.catalog.setCurrentDatabase(config['database'])
 
 # DBTITLE 1,File Paths
 config['temp_point'] ='/tmp/comtrade'
-config['source_path'] = "s3://db-gtm-industry-solutions/data/rcg/comtrade/transient disturbances/"
+config['source_path'] = "s3://db-gtm-industry-solutions/data/rcg/comtrade/source/"
 config['input_path'] = config['temp_point'] + '/input'
 config['output_path'] = config['temp_point'] + '/output'
+dbutils.fs.mkdirs(config['input_path'])
+dbutils.fs.mkdirs(config['output_path'])
 
 # COMMAND ----------
 

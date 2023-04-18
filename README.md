@@ -13,7 +13,7 @@ ___
 
 ___
 
-<img src="https://brysmiwasb.blob.core.windows.net/demos/images/comtrade_architecture2.png" width=60%>
+<img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/arch.png' width=800>
 </p>
 
 ___

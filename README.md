@@ -4,22 +4,21 @@
 [![POC](https://img.shields.io/badge/POC-10_days-green?style=for-the-badge)](https://databricks.com/try-databricks)
 
 ## Business Problem
-<List of the business use case the solution accelerator address>
+The [COMTRADE format](https://ieeexplore.ieee.org/document/6512503) is the standard for the interchange of various types of fault, test, and simulation data, defined by the [Institute of Electrical and Electronic Engineers (IEEE)](https://www.ieee.org/). This format is widely used in a number of analytic applications, making it critical that we demonstrate how such data can be processed in Databricks.
 
-## Scope
-<How we expect the user to use this content>
-
-___
-<john.doe@databricks.com>
+In this solution accelerator, we will show how electric signal data captured in the COMTRADE format can be processed in a distributed manner using a Databricks cluster. We create a streaming pipeline for eletric utilities providers to detect faults.
 
 ___
-
-
-IMAGE TO REFERENCE ARCHITECTURE
+<colton.peltier@databricks.com>,  <eric.golinko@databricks.com>, <bryan.smith@databricks.com>
 
 ___
 
-&copy; 2022 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source].  All included or referenced third party libraries are subject to the licenses set forth below.
+<img src="https://brysmiwasb.blob.core.windows.net/demos/images/comtrade_architecture2.png" width=60%>
+</p>
+
+___
+
+&copy; 2023 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License [https://databricks.com/db-license-source].  All included or referenced third party libraries are subject to the licenses set forth below.
 
 | library                                | description             | license    | source                                              |
 |----------------------------------------|-------------------------|------------|-----------------------------------------------------|

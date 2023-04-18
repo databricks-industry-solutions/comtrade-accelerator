@@ -53,7 +53,7 @@ cfg = (
     .format('binaryFile')
     .option('recursiveFileLookup','true') # enable reading from all subfolders
     .option('pathGlobFilter', '*.cfg') # .cfg files only
-    .load(config['output_path']) # read data from output folder
+    .load(config['source_path']) 
     .withColumn('base_name', fn.expr("split(path, '[.]')[0]"))
   )
 
@@ -68,7 +68,7 @@ dat = (
     .format('binaryFile')
     .option('recursiveFileLookup','true') # enable reading from all subfolders
     .option('pathGlobFilter', '*.dat') # .dat files only
-    .load(config['output_path']) # read data from output folder
+    .load(config['source_path']) 
     .withColumn('base_name', fn.expr("split(path, '[.]')[0]"))
   )
 
@@ -282,18 +282,13 @@ display(spark.table('readings'))
 
 # COMMAND ----------
 
-# MAGIC %md As we did in the last notebook, we might plot one of the COMTRADE files to verify its data has been captured appropriately:
+# MAGIC %md As we did in the last notebook, we might plot one of the COMTRADE files to verify its data has been captured appropriately. The COMTRADE file we use as example here is the same one we downloaded in Notebook 01.
 
 # COMMAND ----------
 
 # DBTITLE 1,Plot COMTRADE File
 # get name of one output CFG file
-sample_output_file_name = (
-  spark
-    .table('metadata')
-    .limit(1)
-    .selectExpr("replace(path_cfg, 'dbfs:/','/dbfs/') as output_file_name")
-  ).collect()[0]['output_file_name']
+sample_output_file_name = "/databricks/driver/cap1f_01.cfg"
 
 # instantiate comtrade format reader
 comtrade_data = Comtrade()
@@ -319,7 +314,7 @@ plt.show()
 sample_data = (
   spark
     .table('readings')
-    .filter(f"path_cfg='{sample_output_file_name.replace('/dbfs/','dbfs:/')}'")
+    .filter("path_cfg like '%cap1f_01.cfg%'")
     .orderBy('microseconds')
     .select('IA','IB','IC')
   )

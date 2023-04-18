@@ -32,14 +32,23 @@ _ = spark.catalog.setCurrentDatabase(config['database'])
 
 # DBTITLE 1,File Paths
 config['temp_point'] ='/tmp/comtrade'
-config['source_path'] = "s3://db-gtm-industry-solutions/data/rcg/comtrade/transient disturbances/"
+config['source_path'] = "s3://db-gtm-industry-solutions/data/rcg/comtrade/source/"
 config['input_path'] = config['temp_point'] + '/input'
 config['output_path'] = config['temp_point'] + '/output'
+dbutils.fs.mkdirs(config['input_path'])
+dbutils.fs.mkdirs(config['output_path'])
 
 # COMMAND ----------
 
 # DBTITLE 1,Model
 config['model_name'] = 'fault_detection'
+
+# COMMAND ----------
+
+# DBTITLE 1,mlflow experiment
+import mlflow
+username = dbutils.notebook.entry_point.getDbutils().notebook().getContext().userName().get()
+mlflow.set_experiment('/Users/{}/comtrade'.format(username))
 
 # COMMAND ----------
 

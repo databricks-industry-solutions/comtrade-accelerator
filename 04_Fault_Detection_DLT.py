@@ -45,7 +45,7 @@ import json
 
 # COMMAND ----------
 
-# MAGIC %md As part of a production-like pipeline, we externalize the column names as configs. This simplifies the work to adapt the pipeline to similar data sources that may have different column names.
+# MAGIC %md As part of a production-like pipeline, we externalize the column names as configs. This simplifies the work to adapt the pipeline to similar data sources in case column names are different.
 
 # COMMAND ----------
 
@@ -281,6 +281,46 @@ def comtrade_json_silver():
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Silver : Flattened data
+# MAGIC This flattened table is an optional transformation for the ease of interactive queries. We explode the array and flatten the struct columns for users to interact with the data more easily.
+
+# COMMAND ----------
+
+FLATTENED_DATA_SILVER = "flattened_silver"
+
+@dlt.table(
+    name=FLATTENED_DATA_SILVER,
+    comment="Flattened COMTRADE data",
+    table_properties={"quality" : "silver"}
+)
+def flattened_data_silver():
+    array_columns_to_bundle = [TIME, "analog"] # Include status here too, if you need status channels
+    unneeded_columns = ["analog_units","status", "status_channel_names", "config_content", "dat_content", "binary_json"]
+    return (
+        dlt
+        .read_stream(COMTRADE_SILVER_TABLE)
+        .drop(*metadata_cols, *unneeded_columns)
+        .select(
+            "*",
+            F.arrays_zip(*array_columns_to_bundle).alias("array_cols")
+        )
+        .drop(*array_columns_to_bundle)
+        .select("*",F.explode("array_cols").alias("struct_col"))
+        .drop("array_cols")
+        .select("*","struct_col.*")
+        .drop("struct_col")
+        .withColumn("analog_channels_per_timestamp", F.arrays_zip("analog_channel_names","analog"))
+        .drop("analog_channel_names","analog")
+        .select("*", F.explode("analog_channels_per_timestamp").alias("analog_channel"))
+        .drop("analog_channels_per_timestamp")
+        .select("*", "analog_channel.*")
+        .drop("analog_channel")
+    )
+
+
+# COMMAND ----------
+
 # MAGIC %md 
 # MAGIC # Silver : Metadata
 
@@ -427,10 +467,45 @@ def electrical_fault_detection_gold():
 
 # COMMAND ----------
 
-# MAGIC %md Using the UI, We can configure the DLT pipeline according to the screenshots below. Alternatively, we recommemnd you use the RUNME notebook to automate the creation of the Workflow for this accelerator - the DLT pipeline is available as the last step in the automated Workflow.
+# MAGIC %md # Deploying the whole pipeline
+
+# COMMAND ----------
+
+# DBTITLE 1,DLT Deployment
+# MAGIC %md We recommemnd you use the RUNME notebook to automate the creation of the Workflow for this accelerator - the DLT pipeline is the last step in the automated Workflow.
+# MAGIC 
+# MAGIC Alternatively, we can configure the DLT pipeline using the UI according to the screenshots below. 
+# MAGIC 
+# MAGIC * In the *Create Pipeline* dialog, we select *04_Fault_Detection_DLT*.
+# MAGIC 
+# MAGIC * Under *Target*, we specify the name of the database within which DLT objects created in these workflows should reside. Enter `solacc_fault_detection`.
+# MAGIC 
+# MAGIC * Under *Storage Location*, we specify the storage location where object data and metadata of the DLT will be placed. For a matching example to the automated DLT, enter `/databricks_solacc/fault_detection/dlt`.
+# MAGIC 
+# MAGIC Under *Pipeline Mode*, we specify how the cluster that runs our job will be managed.  If we select *Triggered*, the cluster shuts down with each cycle.  As several of our DLT objects are configured to run continously, we should select *Continous* mode. In our DLT object definitions, we leveraged some throttling techniques to ensure our workflows do not become overwhelmed with data.  Still, there will be some variability in terms of data moving through our pipelines so we might specify a minimum and maximum number of workers within a reasonable range based on our expectations for the data.  Once deployed, we might monitor resource utilization to determine if this range should be adjusted.
+# MAGIC 
+# MAGIC **NOTE** Continous jobs will run indefinetly until explicitly stopped.  Please be aware of this as you manage your DLT pipelines.
+# MAGIC 
+# MAGIC Clicking *Create* we now have defined the jobs for our DLT workflow. You can compare the `Settings` of the created pipeline with the standard settings. Below are the standard settings our RUNME automation notebook uses:
+# MAGIC 
+# MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt-config2.png' width=800>
+# MAGIC 
+# MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt-config.png' width=800>
+
+# COMMAND ----------
+
+# DBTITLE 1,DLT Monitoring
+# MAGIC %md
+# MAGIC After running the overall Workflow created by the RUNME notebook, or after running the individual notebooks interactively in order and then running the DLT pipeline, you should see the following 
 # MAGIC 
 # MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt.png' width=800>
 # MAGIC 
+# MAGIC Each box represents a table we define with `@dlt.table` in this notebook. Each table contains stats related to execution duration, record count, and optionally data quality information.
 # MAGIC 
-# MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt_config.png' width=800>
-# MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt_config2.png' width=800>
+# MAGIC The connections between the items indicate the dependencies between objects.  Color coding indicates the status of the tables in the pipeline. Should an error be encountered, event information at the bottom of the UI would reflect this.  Clicking on the error event would then expose error messages with which the problem could be diagnosed.
+# MAGIC 
+# MAGIC When the job initialy runs, it will run in *Development* mode as indicated at the top of the UI.  In Development mode, any errors will cause the job to be stopped so that they may be corrected. By clicking *Production*, the job is moved into a state where jobs are restarted upon error.
+
+# COMMAND ----------
+
+

@@ -83,7 +83,7 @@ job_json = {
             {
                 "job_cluster_key": "comtrade_cluster",
                 "notebook_task": {
-                    "notebook_path": f"01_Data"
+                    "notebook_path": f"01_Explore_Data"
                 },
                 "task_key": "comtrade_01",
                 "depends_on": [

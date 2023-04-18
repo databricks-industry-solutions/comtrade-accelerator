@@ -12,7 +12,8 @@
 # MAGIC In this notebook, we'll take a set of text files representing simulated current readings in a *5-bus interconnected system for Phase Angle Regulators and Power Transformers* and convert them to the [COMTRADE format](https://ieeexplore.ieee.org/document/6512503) as defined by the [Institute of Electrical and Electronic Engineers (IEEE)](https://www.ieee.org/). This format is widely used in a number of analytic applications, making it critical that we demonstrate how such data can be processed in Databricks.
 # MAGIC 
 # MAGIC The dataset we will be using is the IEEE's [*Transients and Faults in Power Transformers and Phase Angle Regulators* dataset](https://ieee-dataport.org/open-access/transients-and-faults-power-transformers-and-phase-angle-regulators-dataset).  The files that makeup this dataset are generated using EMTDC/PSCAD and are provided in a simple, four-column delimited text format.
-# MAGIC Within this dataset, we focus on the `transient disturbances` subset because <?????? why other subfolders contain data that are not applicable to our use case>. 
+# MAGIC Within this dataset, we focus only on the `transient disturbances` subset that is applicable for the fault detection use case.
+# MAGIC 
 # MAGIC We converted this subset to COMTRADE format and stored it on a publicly-assessible storage account to act as the source for our data pipeline.
 
 # COMMAND ----------

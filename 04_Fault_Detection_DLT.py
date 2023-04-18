@@ -3,7 +3,19 @@
 
 # COMMAND ----------
 
-# MAGIC %md In this notebook, we combine all the ETL steps from notebook 02 with the ML model trained in notebook 03 to build a DLT pipeline for end-to-end model inference. 
+# MAGIC %md ## Deploy the Model
+# MAGIC 
+# MAGIC 
+# MAGIC With our model in MLflow, it can easily be deployed in a variety of scenarios.  The one that most immediately comes to mind is one within which COMTRADE data are delivered from electrical providers as part of their fault management processes.  These files may be processed upon receipt in real-time using Databricks [Auto Loader](https://docs.databricks.com/ingestion/auto-loader/index.html) and [Delta Live Table](https://docs.databricks.com/delta-live-tables/index.html) logic that persists the data to Delta Lake tables and [presented to the latest production instance of our fault detection model](https://docs.databricks.com/delta-live-tables/transform.html#use-mlflow-models-in-a-delta-live-tables-pipeline) to determine if a fault has occurred. From there, Databricks may send a message to any number of [downstream systems](https://docs.databricks.com/external-data/index.html) in order to notify them of the occurrence.
+# MAGIC </p>
+# MAGIC 
+# MAGIC <img src="https://brysmiwasb.blob.core.windows.net/demos/images/comtrade_architecture2.png" width=60%>
+# MAGIC </p>
+# MAGIC 
+# MAGIC In this notebook, we combine all the ETL steps from notebook 02 with the ML model trained in notebook 03 to build a DLT pipeline for end-to-end model inference. 
+# MAGIC **Do not run this notebook interactively** - it will fail on the block below on `import dlt`. This notebook would only run as part of a DLT pipeline. 
+# MAGIC 
+# MAGIC See the end of this notebook for instructions to set up the DLT pipeline using UI. Alternatively, if you use the RUNME notebook to create a Workflow for this accelerator, the DLT pipeline will be created for you as the last step in the Workflow. 
 
 # COMMAND ----------
 
@@ -29,6 +41,11 @@ import dlt
 import mlflow
 import tensorflow
 import mlflow.keras as ml_keras
+import json
+
+# COMMAND ----------
+
+# MAGIC %md As part of a production-like pipeline, we externalize the column names as configs. This simplifies the work to adapt the pipeline to similar data sources that may have different column names.
 
 # COMMAND ----------
 
@@ -57,18 +74,19 @@ PHASE = "phase"
 ANALOG_CHANNEL_NAMES = "analog_channel_names"
 STATUS_CHANNEL_NAMES = "status_channel_names"
 
+## Other configs
 # This is the path where new COMTRADE files (.cfg, .dat) stream in. Here we reuse the same source data for model training for illustration. In realistic deployments this would be a diffent path.
 COMTRADE_DELTA_LAKE_PATH = "s3://db-gtm-industry-solutions/data/rcg/comtrade/source"
 
-# COMMAND ----------
-
-# Load the fault model from mlflow and broadcast to worker nodes
-fault_bc = spark.sparkContext.broadcast(ml_keras.load_model("models:/fault_detection/Production"))
+# model name in model registry
+model_name = "fault_detection"
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC # Bronze : Raw File Extractions
+# MAGIC 
+# MAGIC The logic of the bronze layer tables below are elaborated in Notebook 02.
 
 # COMMAND ----------
 
@@ -162,75 +180,59 @@ def joined_files_bronze():
 
 # MAGIC %md
 # MAGIC # Silver : Comtrade Processing
+# MAGIC 
+# MAGIC The logic of the silver tables below are explained in detail in notebook 02.
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Helper Functions
+# DBTITLE 1,Define Function to Convert COMTRADE Data to JSON
+@fn.udf('string')
+def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes):
 
-# COMMAND ----------
+  # initialize comtrade object
+  ct = Comtrade()
 
-def read_comtrade_dynamic(cfg : str, dat : bytes) -> comtrade.Comtrade:
-    # NEW : Create new instance of comtrade.Comtrade
-    ct = comtrade.Comtrade()
-    # These lines are the same as Comtrade.read():
-    ct._cfg.read(cfg)
-    ct._cfg_extract_channels_ids(ct._cfg)
-    ct._cfg_extract_phases(ct._cfg)
-    dat_proc = ct._get_dat_reader()
-    # NEW : Add the following line to dynamically determine if the bytes object should be converted to a string with .decode()
-    dat = dat.decode() if (ct.ft == "ASCII") else dat
-    # Below lines the same as Comtrade.read()
-    dat_proc.read(dat,ct._cfg)
-    ct._dat_extract_data(dat_proc)
-    # NEW : return the comtrade.Comtrade object.
-    return ct
+  # read configuration into comtrade object
+  ct._cfg.read( cfg_content.decode() )
+  ct._cfg_extract_channels_ids(ct._cfg)
+  ct._cfg_extract_phases(ct._cfg)
+  
+  # read data into comtrade object
+  dat = ct._get_dat_reader()
+  dat.read(
+    dat_content.decode() if (ct.ft == "ASCII") else dat_content, # determine whether data expected as binary or text
+    ct._cfg
+    )
+  ct._dat_extract_data(dat)
 
-def retrieve_dict(cfg : str, dat : bytes) -> str:
-    # Pass in the config file string and data file binary contents to create a comtrade.Comtrade object
-    _comtrade = read_comtrade_dynamic(cfg, dat)
-    # How many analog and status channels exist?
-    analog_count = _comtrade.analog_count
-    status_count = _comtrade.status_count
-    # initialize an empty dicitonary
-    ret = {}
-    # Initialize empty analog return values
-    _analog_list = []
-    _analog_units = []
-    _analog_channel_names = []
-    if (analog_count > 0):
-        # Use numpy.vstack to stack the analog channels into an np.array, transpose it, then convert it to a List[List[float]] object. 
-        # where each list corresponds to the value of all analog channels at a specify timestamp.
-        _analog_list = np.vstack(_comtrade.analog).transpose().tolist()
-        _analog_channels = [channel.uu for channel in _comtrade._cfg.analog_channels]
-        _analog_channel_names = _comtrade.analog_channel_ids
-    ret[ANALOG] = _analog_list
-    ret[ANALOG_UNITS] = _analog_units
-    ret[ANALOG_CHANNEL_NAMES] = _analog_channel_names
-    # Initialize empty status return values
-    _status_list = []
-    _status_channel_names = []
-    if (status_count > 0):
-        # get the value of each status channel at each timestamp
-        _status_list = np.vstack(_comtrade.status).transpose().tolist()
-        _status_channel_names = _comtrade.status_channel_ids
-    ret[STATUS] = _status_list
-    # get the frequency, rec_dev_id, and station name
-    ret[FREQ] = _comtrade.frequency
-    ret[REC_DEV_ID] = _comtrade.rec_dev_id
-    ret[STATION_NAME] = _comtrade.station_name
-    # Because spark timestamps only go down to the millisecond level, we'll need to track microseconds separately.
-    _datetimes = [_comtrade.start_timestamp + datetime.timedelta(seconds = fractional_second) for fractional_second in _comtrade.time]
-    ret[TIME] = [int(dt.timestamp() * 1e6) for dt in _datetimes]
-    # Dump the dictionary to a binary string.
-    return orjson.dumps(ret)
+  # initialize ct dictionary object
+  ct_dict = {}
 
-@pandas_udf(BinaryType())
-def get_comtrade_json(cfg_series : pd.Series, dat_series : pd.Series) -> pd.Series:
-    # Put the two pandas series into a pandas DataFrame
-    _df = pd.DataFrame({"cfg" : cfg_series, "dat" : dat_series})
-    # For every row, apply the retrieve_dict function to get the binary json string
-    return _df.apply(lambda row : retrieve_dict(row["cfg"], row["dat"]),1)
+  # get config values
+  ct_dict[FREQ] = ct.frequency
+  ct_dict[REC_DEV_ID] = ct.rec_dev_id
+  ct_dict[STATION_NAME] = ct.station_name
+  ct_dict[TIME_MICRO] = [int(ct.start_timestamp.timestamp()) + int(second * 1e6) for second in ct.time]
+
+  # process analog channel info
+  if ct.analog_count > 0:
+
+    # read analog, concatonate values along first access, transpose axes and convert to list
+    ct_dict[ANALOG] = np.vstack(ct.analog).transpose().tolist()
+
+    # read analog units
+    ct_dict[ANALOG_UNITS] = [c.uu for c in ct._cfg.analog_channels]
+
+    # read analog channel names
+    ct_dict[ANALOG_CHANNEL_NAMES] = ct.analog_channel_ids
+
+  # process status info
+  if ct.status_count > 0:
+    ct_dict[STATUS] = np.vstack(ct.status).transpose().tolist()
+    ct_dict[STATUS_CHANNEL_NAMES] = ct.status_channel_ids
+
+  # return dictionary object as json string
+  return json.dumps(ct_dict)
 
 # COMMAND ----------
 
@@ -269,8 +271,8 @@ def comtrade_json_silver():
     return (
         dlt
         .read_stream(JOINED_FILES_BRONZE_TABLE)
-        .withColumn("binary_json", get_comtrade_json(F.col("config_content"), F.col("dat_content")))
-        .withColumn("parsed_json", F.from_json(F.col("binary_json").cast("string"), json_schema))
+        .withColumn("string_json", get_comtrade_as_json(F.col("config_content"), F.col("dat_content")))
+        .withColumn("parsed_json", F.from_json(F.col("string_json"), json_schema))
         .select("*", "parsed_json.*")
         .drop("parsed_json")
         .withColumn(TIME, F.transform(TIME, lambda x : F.to_timestamp(x / 1e6)))
@@ -307,58 +309,18 @@ def comtrade_metadata_silver():
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Silver : Flattened Data
-
-# COMMAND ----------
-
-FLATTENED_DATA_SILVER = "flattened_silver"
-
-@dlt.table(
-    name=FLATTENED_DATA_SILVER,
-    comment="Flattened COMTRADE data",
-    table_properties={"quality" : "silver"}
-)
-def flattened_data_silver():
-    array_columns_to_bundle = [TIME, "analog"] # Include status here too, if you need status channels
-    unneeded_columns = ["analog_units","status", "status_channel_names", "config_content", "dat_content", "binary_json"]
-    return (
-        dlt
-        .read_stream(COMTRADE_SILVER_TABLE)
-        .drop(*metadata_cols, *unneeded_columns)
-        .select(
-            "*",
-            F.arrays_zip(*array_columns_to_bundle).alias("array_cols")
-        )
-        .drop(*array_columns_to_bundle)
-        .select("*",F.explode("array_cols").alias("struct_col"))
-        .drop("array_cols")
-        .select("*","struct_col.*")
-        .drop("struct_col")
-        .withColumn("analog_channels_per_timestamp", F.arrays_zip("analog_channel_names","analog"))
-        .drop("analog_channel_names","analog")
-        .select("*", F.explode("analog_channels_per_timestamp").alias("analog_channel"))
-        .drop("analog_channels_per_timestamp")
-        .select("*", "analog_channel.*")
-        .drop("analog_channel")
-    )
+# MAGIC # Silver : Create columns for current Channels
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Silver : Pivot Current Channels
+# MAGIC In this step, we create separate columns for `IA`, `IB` and `IC` channels similar to how one *pivots* a table. 
+# MAGIC 
+# MAGIC As of today <a href = "https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html?_ga=2.22595967.59249201.1678131937-1347012581.1661879485#limitations">`.pivot` is not supported in DLT</a>, as DLT does not support any operations where table values impacts the schema of subsequent tables. However, in our case, because there are a set number of potential channels (3), and the data for each COMTRADE is small enough, we can define a pandas_udf that is compatible with DLT to circumvent this problem.
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC As of today <a href = "https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html?_ga=2.22595967.59249201.1678131937-1347012581.1661879485#limitations">`.pivot` is not supported in DLT</a>. Since the data for each COMTRADE is small enough, below will be defined a pandas_udf which can pivot the data. 
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Schema Defintion
-
-# COMMAND ----------
-
+# DBTITLE 1,Schema Defintion for the UDF
 pivoted_schema = StructType([
         StructField(FILENAME, StringType(), False),
         StructField(TIME, TimestampType(), False),
@@ -370,11 +332,7 @@ pivoted_schema = StructType([
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Helper Functions
-
-# COMMAND ----------
-
+# DBTITLE 1,UDF for "pivoting"
 def pivot_current_channels(df : pd.DataFrame) -> pd.DataFrame:
     _processed_timestamp = df["processed_timestamp"].iloc[0]
     _pivoted = df.pivot_table(index=[FILENAME,TIME], columns="analog_channel_names", values="analog", aggfunc="first").reset_index(drop=False)
@@ -414,9 +372,18 @@ def pivoted_current_silver():
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Helper Functions
+# MAGIC ## Inference function
+# MAGIC 
+# MAGIC From the registry, we can retrieve the production version of our fault detection model and create an inference function with the model.
+# MAGIC 
+# MAGIC We broadcast the model and load the model from the broadcasted variable in the pandas UDF. This technique further improves the efficiency of loading a model from the registry: the model is loaded from mlflow model registry only once and then copied to cluster workers via a broadcast variable.
+# MAGIC 
+# MAGIC We use an a Pandas UDF with Iterator support for our inference function to further reduce the number of times we need to load a model from registry. This pandas UDF type is useful when the UDF execution requires initializing some state, for example, loading a machine learning model file to apply inference to every input batch. 
 
 # COMMAND ----------
+
+# Load the fault model from mlflow and broadcast to worker nodes
+fault_bc = spark.sparkContext.broadcast(ml_keras.load_model(f"models:/{model_name}/Production"))
 
 @pandas_udf(DoubleType())
 def fault_identification(waveform_series : Iterator[pd.Series]) -> Iterator[pd.Series]:
@@ -457,3 +424,13 @@ def electrical_fault_detection_gold():
         .withColumn("fault_score", fault_identification(F.col("timestep_array")))
         .select(FILENAME, "processed_timestamp","fault_score")
     )
+
+# COMMAND ----------
+
+# MAGIC %md Using the UI, We can configure the DLT pipeline according to the screenshots below. Alternatively, we recommemnd you use the RUNME notebook to automate the creation of the Workflow for this accelerator - the DLT pipeline is available as the last step in the automated Workflow.
+# MAGIC 
+# MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt.png' width=800>
+# MAGIC 
+# MAGIC 
+# MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt_config.png' width=800>
+# MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt_config2.png' width=800>

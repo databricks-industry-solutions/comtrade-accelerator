@@ -45,6 +45,13 @@ config['model_name'] = 'fault_detection'
 
 # COMMAND ----------
 
+# DBTITLE 1,mlflow experiment
+import mlflow
+username = dbutils.notebook.entry_point.getDbutils().notebook().getContext().userName().get()
+mlflow.set_experiment('/Users/{}/comtrade'.format(username))
+
+# COMMAND ----------
+
 # MAGIC %md © 2023 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License. All included or referenced third party libraries are subject to the licenses set forth below.
 # MAGIC 
 # MAGIC | library                                | description             | license    | source                                              |

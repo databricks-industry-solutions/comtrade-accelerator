@@ -3,6 +3,10 @@
 
 # COMMAND ----------
 
+# MAGIC %pip install comtrade
+
+# COMMAND ----------
+
 # MAGIC %md ##Introduction
 # MAGIC 
 # MAGIC In this notebook, we'll take a set of text files representing simulated current readings in a *5-bus interconnected system for Phase Angle Regulators and Power Transformers* and convert them to the [COMTRADE format](https://ieeexplore.ieee.org/document/6512503) as defined by the [Institute of Electrical and Electronic Engineers (IEEE)](https://www.ieee.org/). This format is widely used in a number of analytic applications, making it critical that we demonstrate how such data can be processed in Databricks.
@@ -14,7 +18,7 @@
 # COMMAND ----------
 
 # DBTITLE 1,Get Config Settings
-# MAGIC %run "../00_Intro_and_Config"
+# MAGIC %run "./00_Intro_and_Config"
 
 # COMMAND ----------
 
@@ -88,6 +92,8 @@ print(f"{file_count} total files found")
 # COMMAND ----------
 
 # DBTITLE 1,Plot a Sample File
+from comtrade import Comtrade
+import matplotlib.pyplot as plt
 
 # get name of one output CFG file
 sample_output_file_name = "/databricks/driver/cap1f_01.cfg"

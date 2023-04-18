@@ -385,16 +385,6 @@ client.transition_model_version_stage(
 
 # COMMAND ----------
 
-# MAGIC %md ##Step 5: Deploy the Model
-# MAGIC 
-# MAGIC With our model in MLflow, it can easily be deployed in a variety of scenarios.  The one that most immediately comes to mind is one within which COMTRADE data are delivered from electrical providers as part of their fault management processes.  These files may be processed upon receipt in real-time using Databricks [Auto Loader](https://docs.databricks.com/ingestion/auto-loader/index.html) and [Delta Live Table](https://docs.databricks.com/delta-live-tables/index.html) logic that persists the data to Delta Lake tables (as performed in the previous notebook) and [presented to the latest production instance of our fault detection model](https://docs.databricks.com/delta-live-tables/transform.html#use-mlflow-models-in-a-delta-live-tables-pipeline) to determine if a fault has occurred. From there, Databricks may send a message to any number of [downstream systems](https://docs.databricks.com/external-data/index.html) in order to notify them of the occurrence.
-# MAGIC </p>
-# MAGIC 
-# MAGIC <img src="https://brysmiwasb.blob.core.windows.net/demos/images/comtrade_architecture2.png" width=60%>
-# MAGIC </p>
-
-# COMMAND ----------
-
 # MAGIC %md © 2023 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License. All included or referenced third party libraries are subject to the licenses set forth below.
 # MAGIC 
 # MAGIC | library                                | description             | license    | source                                              |

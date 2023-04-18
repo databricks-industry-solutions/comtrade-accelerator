@@ -186,7 +186,7 @@ def joined_files_bronze():
 # COMMAND ----------
 
 # DBTITLE 1,Define Function to Convert COMTRADE Data to JSON
-@fn.udf('string')
+@udf('string')
 def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes):
 
   # initialize comtrade object
@@ -283,7 +283,7 @@ def comtrade_json_silver():
 
 # MAGIC %md
 # MAGIC ## Silver : Flattened data
-# MAGIC This flattened table is an optional transformation for the ease of interactive queries. We explode the array and flatten the struct columns for users to interact with the data more easily.
+# MAGIC This flattened table is a transformation for the ease of interactive queries. We explode the array and flatten the struct columns for the users to interact with the data more easily.
 
 # COMMAND ----------
 
@@ -356,11 +356,11 @@ def comtrade_metadata_silver():
 # MAGIC %md
 # MAGIC In this step, we create separate columns for `IA`, `IB` and `IC` channels similar to how one *pivots* a table. 
 # MAGIC 
-# MAGIC As of today <a href = "https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html?_ga=2.22595967.59249201.1678131937-1347012581.1661879485#limitations">`.pivot` is not supported in DLT</a>, as DLT does not support any operations where table values impacts the schema of subsequent tables. However, in our case, because there are a set number of potential channels (3), and the data for each COMTRADE is small enough, we can define a pandas_udf that is compatible with DLT to circumvent this problem.
+# MAGIC As of today <a href = "https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html?_ga=2.22595967.59249201.1678131937-1347012581.1661879485#limitations">`.pivot` is not supported in DLT</a>, as DLT does not support any operations where table values impacts the schema of subsequent tables. However, in our case, because there are a set number of potential channels (3), and the data for each COMTRADE is small enough, we can define a function to use with `applyInPandas` that is compatible with DLT to circumvent this problem.
 
 # COMMAND ----------
 
-# DBTITLE 1,Schema Defintion for the UDF
+# DBTITLE 1,Schema Defintion 
 pivoted_schema = StructType([
         StructField(FILENAME, StringType(), False),
         StructField(TIME, TimestampType(), False),
@@ -372,7 +372,7 @@ pivoted_schema = StructType([
 
 # COMMAND ----------
 
-# DBTITLE 1,UDF for "pivoting"
+# DBTITLE 1,Function for "pivoting"
 def pivot_current_channels(df : pd.DataFrame) -> pd.DataFrame:
     _processed_timestamp = df["processed_timestamp"].iloc[0]
     _pivoted = df.pivot_table(index=[FILENAME,TIME], columns="analog_channel_names", values="analog", aggfunc="first").reset_index(drop=False)
@@ -467,7 +467,7 @@ def electrical_fault_detection_gold():
 
 # COMMAND ----------
 
-# MAGIC %md # Deploying the whole pipeline
+# MAGIC %md # Deploying the end-to-end inference pipeline
 
 # COMMAND ----------
 
@@ -500,7 +500,7 @@ def electrical_fault_detection_gold():
 # MAGIC 
 # MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt.png' width=800>
 # MAGIC 
-# MAGIC Each box represents a table we define with `@dlt.table` in this notebook. Each table contains stats related to execution duration, record count, and optionally data quality information.
+# MAGIC Each box represents a table we define with `@dlt.table` in this notebook. Each table contains stats for execution duration, record count, and optionally data quality information.
 # MAGIC 
 # MAGIC The connections between the items indicate the dependencies between objects.  Color coding indicates the status of the tables in the pipeline. Should an error be encountered, event information at the bottom of the UI would reflect this.  Clicking on the error event would then expose error messages with which the problem could be diagnosed.
 # MAGIC 
@@ -508,4 +508,13 @@ def electrical_fault_detection_gold():
 
 # COMMAND ----------
 
+# MAGIC %md Congratulations! You have built a streaming pipeline that incrementally processes COMTRADE files and detects faults using a ML model. ⚡
 
+# COMMAND ----------
+
+# MAGIC %md © 2023 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License. All included or referenced third party libraries are subject to the licenses set forth below.
+# MAGIC 
+# MAGIC | library                                | description             | license    | source                                              |
+# MAGIC |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
+# MAGIC | comtrade | A module designed to read Common Format for Transient Data Exchange (COMTRADE) file format |  MIT | https://pypi.org/project/comtrade/                       |
+# MAGIC | comtradehandlers | File handlers for the COMTRADE format| MIT | https://github.com/relihanl/comtradehandlers.git#egg=comtradehandlers |

@@ -25,7 +25,7 @@
 # COMMAND ----------
 
 import pyspark.sql.functions as F
-import comtrade
+from comtrade import Comtrade
 from pyspark.sql.functions import pandas_udf, udf
 from pyspark.sql import DataFrame
 from pyspark.sql.types import BinaryType, StringType, StructType, StructField, ArrayType, DoubleType, MapType, TimestampType, IntegerType, LongType

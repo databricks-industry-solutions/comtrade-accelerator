@@ -193,7 +193,7 @@ def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes):
   ct = Comtrade()
 
   # read configuration into comtrade object
-  ct._cfg.read( cfg_content.decode() )
+  ct._cfg.read( cfg_content )
   ct._cfg_extract_channels_ids(ct._cfg)
   ct._cfg_extract_phases(ct._cfg)
   

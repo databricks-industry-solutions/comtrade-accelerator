@@ -4,7 +4,7 @@
 # COMMAND ----------
 
 # MAGIC %md ##Introduction
-# MAGIC 
+# MAGIC
 # MAGIC We now have a dataset available in the COMTRADE format.  In this format, data is received in two files.  The configuration file (CFG) contains the higher-level details about a given set of data while the data file (DAT) contains a series of readings. These file are often read together using format aware libraries, making the large scale processing of these data using general purpose engines such as Spark a bit tricky.  Furthermore, the structure of the data read from these files isn't often aligned with the needs of general purpose analytics tools so that we often need to restructure the data to make it more widely accessible. In this notebook, we'll tackle both these challenges in preparation for the analytics work to take place in downstream notebooks.
 
 # COMMAND ----------
@@ -33,15 +33,15 @@ import matplotlib.pyplot as plt
 # COMMAND ----------
 
 # MAGIC %md ##Step 1: Read the COMTRADE Data
-# MAGIC 
+# MAGIC
 # MAGIC With the COMTRADE data delivered as two files, *i.e.* a CFG and a DAT file, the easiest way to process the incoming data is to read each file separately and combine them based on matching file name (ignoring the respective *.cfg* and *.dat* file extensions). To do this, we'll reach each file as a single entity using the [*binaryFile*](https://spark.apache.org/docs/latest/sql-data-sources-binaryFile.html) format.  This will create one record for each file with the following fields:
 # MAGIC </p>
-# MAGIC 
-# MAGIC * path: a string representing the full name of the file
-# MAGIC * modificationTime: a timestamp value representing the date teh file was last modified
-# MAGIC * length: a long integer value representing the number of bytes associated with the file
-# MAGIC * content: a binary value representing the file's contents
-# MAGIC 
+# MAGIC
+# MAGIC * `path`: a string representing the full name of the file
+# MAGIC * `modificationTime`: a timestamp value representing the date teh file was last modified
+# MAGIC * `length`: a long integer value representing the number of bytes associated with the file
+# MAGIC * `content`: a binary value representing the file's contents
+# MAGIC
 # MAGIC For each file type, we will parse the file name minus the file extension  to enable a match between the CFG and the DAT files.  Please note that each file resides in a irregular folder hierarchy where as Spark typically prefers to read files within a single folder.  We'll enable a recursive read to allow us to read from across the entire folder substructure:
 
 # COMMAND ----------
@@ -81,6 +81,7 @@ display(dat.limit(10))
 # COMMAND ----------
 
 # DBTITLE 1,Merge Datasets
+# this join is hanging 
 ctrade_raw = (
   cfg.alias('cfg')
     .join(
@@ -101,14 +102,14 @@ display( ctrade_raw.limit(10) )
 # COMMAND ----------
 
 # MAGIC %md ##Step 2: Restructure the Data for Analysis
-# MAGIC 
+# MAGIC
 # MAGIC With the raw data now assembled, we need to interpret the content from the CFG-DAT file pairs as COMTRADE data and return it as a more accessible data object.  Because of the relationship between the configuration and data records, a JSON structure would seem to provide a nice option for returning the data: 
 
 # COMMAND ----------
 
 # DBTITLE 1,Define Function to Convert COMTRADE Data to JSON
 @fn.udf('string')
-def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes):
+def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes) -> str:
 
   # initialize comtrade object
   ct = Comtrade()
@@ -159,17 +160,17 @@ def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes):
 
 # MAGIC %md There's a lot going on in the function above.  You can read more about the individual comtrade object methods and attributes in the [comtrade library's online documentation](https://github.com/dparrini/python-comtrade), though the documentation is a bit sparse.  The key thing to take from this is that we will be returned a JSON string with the following keys: 
 # MAGIC </p>
-# MAGIC 
-# MAGIC * station_name - name of the substation location
-# MAGIC * rec_dev_id - identification number or name of the device
-# MAGIC * frequency -  nominal line frequency in Hz
-# MAGIC * microseconds - the microseconds timestamp associated with the analog readings
-# MAGIC * analog - analog readings as a list of lists of floating point values
-# MAGIC * analog_units - units associated with analog readings, e.g. amperes
-# MAGIC * analog_channel_names - the names of the channels for which readings are recorded
-# MAGIC * status - status readings for the different channels
-# MAGIC * status_channel_names - the names of the status channels
-# MAGIC 
+# MAGIC
+# MAGIC * `station_name` - name of the substation location
+# MAGIC * `rec_dev_id` - identification number or name of the device
+# MAGIC * `frequency` -  nominal line frequency in Hz
+# MAGIC * `microseconds` - the microseconds timestamp associated with the analog readings
+# MAGIC * `analog` - analog readings as a list of lists of floating point values
+# MAGIC * `analog_units` - units associated with analog readings, e.g. amperes
+# MAGIC * `analog_channel_names` - the names of the channels for which readings are recorded
+# MAGIC * `status` - status readings for the different channels
+# MAGIC * `status_channel_names` - the names of the status channels
+# MAGIC
 # MAGIC **NOTE** See Appendix A in [this document](https://ckm-content.se.com/ckmContent/sfc/servlet.shepherd/document/download/0691H00000GYrXeQAL) for additional information about these and other fields in the COMTRADE format specification.
 
 # COMMAND ----------
@@ -228,11 +229,11 @@ _ = (
     .saveAsTable('metadata')
   )
 
-display(spark.table('metadata'))
+display(spark.table('metadata').limit(10))
 
 # COMMAND ----------
 
-# MAGIC %md For readings, it the data manipulations are a bit more complex.  In the current state of the dataset, we have the microseconds time value for each reading in its own array.  The channel readings are held as an array of arrays where the outer array is aligned with the microseconds values and the inner array represents the readings for each channel at that point in time.  What we need to do is link the microseconds time values with the readings and get each channel reading into its own field.  This will require us to [zip together arrays](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.arrays_zip.html#pyspark.sql.functions.arrays_zip) and [explode](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.explode.html#pyspark.sql.functions.explode) our data so that individual entries in the arrays are moved to rows within the resulting dataset.  We will need to do this a few times and then eventually [pivot](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.pivot.html#pyspark.sql.GroupedData.pivot) our data until we arrive at the final result set shown here:
+# MAGIC %md For channel readings, the data manipulations are a bit more complex.  In the current state of the dataset, we have the microseconds time value for each reading in its own array.  The channel readings are held as an array of arrays where the outer array is aligned with the microseconds values and the inner array represents the readings for each channel at that point in time.  What we need to do is link the microseconds time values with the readings and get each channel reading into its own field.  This will require us to [zip together arrays](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.arrays_zip.html#pyspark.sql.functions.arrays_zip) and [explode](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.explode.html#pyspark.sql.functions.explode) our data so that individual entries in the arrays are moved to rows within the resulting dataset.  We will need to do this a few times and then eventually [pivot](https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.GroupedData.pivot.html#pyspark.sql.GroupedData.pivot) our data until we arrive at the final result set shown here:
 
 # COMMAND ----------
 
@@ -274,7 +275,7 @@ _ = (
   )
 
 
-display(spark.table('readings'))
+display(spark.table('readings').limit(10))
 
 # COMMAND ----------
 
@@ -282,7 +283,7 @@ display(spark.table('readings'))
 
 # COMMAND ----------
 
-# MAGIC %md As we did in the last notebook, we might plot one of the COMTRADE files to verify its data has been captured appropriately. The COMTRADE file we use as example here is the same one we downloaded in Notebook 01.
+# MAGIC %md As we did in the last notebook, we might plot one of the COMTRADE files to verify its data has been captured appropriately. The COMTRADE file we use as example here is the same one we downloaded in Notebook 01_Explore_Data.
 
 # COMMAND ----------
 
@@ -332,7 +333,7 @@ plt.show()
 # COMMAND ----------
 
 # MAGIC %md © 2023 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License. All included or referenced third party libraries are subject to the licenses set forth below.
-# MAGIC 
+# MAGIC
 # MAGIC | library                                | description             | license    | source                                              |
 # MAGIC |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
 # MAGIC | comtrade | A module designed to read Common Format for Transient Data Exchange (COMTRADE) file format |  MIT | https://pypi.org/project/comtrade/                       |

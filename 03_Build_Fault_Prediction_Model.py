@@ -5,9 +5,9 @@
 
 # DBTITLE 0,ion
 # MAGIC %md ##Introduction
-# MAGIC 
+# MAGIC
 # MAGIC With our COMTRADE data now recorded in a more accessible format, we can turn our attention to applications for this data.  While there are many, many ways to make use of COMTRADE data, one of the more common uses is in fault prediction.
-# MAGIC 
+# MAGIC
 # MAGIC In this notebook, we'll tackle fault prediction using a binary classification approach where we identify a set of readings as associated with a fault (or not). We will use a convolutional neural network (CNN) pattern that's become popularized as of late for its ability to understand the more complex patterns of relationships within a waveform signal.
 
 # COMMAND ----------
@@ -27,9 +27,9 @@ from hyperopt import hp, fmin, tpe, SparkTrials, STATUS_OK, space_eval
 # COMMAND ----------
 
 # MAGIC %md ##Step 1: Get Features & Labels
-# MAGIC 
+# MAGIC
 # MAGIC Before retrieving the values associated with our readings, it's important for us to establish the number of readings in each file.  We will be training a model on the patterns found in each using a signal processing approach that expects a consistent set of input values. 
-# MAGIC 
+# MAGIC
 # MAGIC From an examination of all the files in this dataset, we can see each contains 726 readings.  We can set our signal *frame size* to 726 or some evenly divisible unit of this, *i.e.* 363, 242, 121, 66, 33, 22, 11, 6, 3, or 2.
 # MAGIC .
 
@@ -164,7 +164,7 @@ print('Testing:    ', test_signals.shape[0])
 # COMMAND ----------
 
 # MAGIC %md ##Step 2: Define the Model
-# MAGIC 
+# MAGIC
 # MAGIC  Now we can define our model.  We'll use a simple convolutional neural network (CNN) architecture that's frequently employed in signals prediction.  You can read more about the application of CNNs in this space in [this](https://ieeexplore.ieee.org/document/8771146) and [related documents](https://www.hindawi.com/journals/itees/2022/8431450/):
 
 # COMMAND ----------
@@ -172,7 +172,7 @@ print('Testing:    ', test_signals.shape[0])
 # DBTITLE 1,Define Model for Fault Prediction
 def create_convolutional_classification_model() -> tf.keras.Model:
     
-    #tf.random.set_seed(13)
+    tf.random.set_seed(13)
 
     inp = tf.keras.Input(shape=[readings_per_file,3])
     pipe = tf.keras.layers.Conv1D(16, 3, activation="relu", padding="same") (inp)
@@ -190,27 +190,27 @@ def create_convolutional_classification_model() -> tf.keras.Model:
 # COMMAND ----------
 
 # MAGIC %md ##Step 3: Tune the Model
-# MAGIC 
+# MAGIC
 # MAGIC Once the model architecture is defined, we can tune the settings that control how the model learns from our data. The key values are *batch_size* and *epochs*.  *batch_size* determines how many values are consumed at a time as the model is processed and *epochs* controls how many total passes over the data the model will take as part of the overall learning process.
-# MAGIC 
+# MAGIC
 # MAGIC Because we don't know exactly what the right values for these two hyperparameters should be, we can define a search space over which acceptable values are likely to be found:
 
 # COMMAND ----------
 
 # DBTITLE 1,Define Hyperparameter Search Space
 search_space = {
-    'batch_size' : hp.quniform('batch_size', 10.0, 100.0, 1.0)                       
-    ,'epochs' : hp.quniform('epochs', 5.0, 20.0, 1.0)   
+    'batch_size' : hp.quniform('batch_size', 10.0, 100.0, 1.0),                        
+    'epochs' : hp.quniform('epochs', 5.0, 20.0, 1.0)   
     }
 
 # COMMAND ----------
 
-# MAGIC %md We can then define a function that when passed a set of values from this search space will train a model.  This function will be used in a later step to evaluate a large number of different hyperparameter value combinations.  The function returns a loss (error) value once it is done training a given model.  Our goal will be to find a set of hyperparameter values that minimizes loss:
+# MAGIC %md We can then define a function that when passed a set of values from this search space will train a model.  This function will be used in a later step to evaluate a large number of different hyperparameter value combinations.  The function returns a loss (error) value once it is done training a given model.  Our goal will be to find the set of hyperparameter values that minimizes loss:
 
 # COMMAND ----------
 
 # DBTITLE 1,Define Function to Evaluate Model against Given Hyperparameter Values
-def evaluate_model(hyperopt_params):
+def evaluate_model(hyperopt_params) -> dict:
 
     _train_signals = train_signals_broadcast.value
     _train_labels = train_labels_broadcast.value
@@ -264,11 +264,11 @@ val_labels_broadcast = sc.broadcast(val_labels)
 # COMMAND ----------
 
 # MAGIC %md And now we can tune our model.  Note that we are using a library called [Hyperopt](https://docs.databricks.com/machine-learning/automl-hyperparam-tuning/index.html) to perform this work.  Hyperopt as configured here will coordinate the distribution of some number of parallel trail runs, selecting values from the available search space and passing a unique combination of values to each of these parallel trails.  
-# MAGIC 
+# MAGIC
 # MAGIC After each trail is done with its work, Hyperopt will evaluate the loss value returned by each and use that information to constrain the search space.  Using this constrained search space, it triggers the next wave of trails to continue constraining the space until the max number of evaluations is reached.  At that point, the hyperparameter combinations that have returned the best results will be determined to be our best hyperparameter values.
-# MAGIC 
+# MAGIC
 # MAGIC Setting *max_evals* to a higher value will cause this process to take longer but is likely to provide you a more fine-tuned search that may result in better hyperparameter values.  Using Hyperopt (in combination with smart sizing of your Databricks cluster), you can perform an intelligent search of a hyperparameter search space within your given time-constraints:
-# MAGIC 
+# MAGIC
 # MAGIC **NOTE** We'll return to the mlflow stuff in Step 4.
 
 # COMMAND ----------
@@ -296,7 +296,7 @@ hyperopt_params
 # COMMAND ----------
 
 # MAGIC %md ##Step 4: Train the Model
-# MAGIC 
+# MAGIC
 # MAGIC With optimal hyperparameter values identified, we can now proceed with the training of our final model.  For this round of training, we can combine our training and validation datasets (used in the hyperparameter tuning exercise) to serve as our new training set: 
 
 # COMMAND ----------
@@ -366,7 +366,7 @@ mlflow.tensorflow.log_model(
 # COMMAND ----------
 
 # MAGIC %md Notice as part of this last exercise, we trained our model as part of an mlflow run.  (We did the same thing when we performed hyperparameter tuning but didn't explain it at that time in order to keep the focus on Hyperopt.)  MLflow is an open source technology that's integrated into the Databricks environment.  It allows us to perform model tracking, registration and deployment, all of which are actions that help ensure we can better manage our model development work and more easily move models into production deployments.  You can read more about mlflow [here](https://docs.databricks.com/mlflow/index.html).
-# MAGIC 
+# MAGIC
 # MAGIC Examining the code above, you can see we trained our model as part of an mlflow run.  We can now search our runs to locate the latest instance of this model and elevate it to production status.  This step is more typically performed using the MLflow user interface follow a series of evaluations performed by our machine learning and develop operations personnel and automation packages.  We are simply moving this into production now to paint a more complete picture of how this model may be identified as *ready for production use*:
 
 # COMMAND ----------
@@ -386,8 +386,12 @@ client.transition_model_version_stage(
 # COMMAND ----------
 
 # MAGIC %md © 2023 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License. All included or referenced third party libraries are subject to the licenses set forth below.
-# MAGIC 
+# MAGIC
 # MAGIC | library                                | description             | license    | source                                              |
 # MAGIC |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
 # MAGIC | comtrade | A module designed to read Common Format for Transient Data Exchange (COMTRADE) file format |  MIT | https://pypi.org/project/comtrade/                       |
 # MAGIC | comtradehandlers | File handlers for the COMTRADE format| MIT | https://github.com/relihanl/comtradehandlers.git#egg=comtradehandlers |
+
+# COMMAND ----------
+
+

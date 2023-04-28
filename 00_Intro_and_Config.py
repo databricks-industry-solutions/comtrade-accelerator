@@ -1,10 +1,10 @@
 # Databricks notebook source
-# MAGIC %md The purpose of this notebook is to introduce the COMTRADE solution accelerator and to provide access to configuration information for the notebooks supporting it.  This notebook was developed on a **Databricks ML 12.2 LTS** cluster. This notebook is also available at https://github.com/databricks-industry-solutions/comtrade-accelerator.
+# MAGIC %md The purpose of this notebook is to introduce the COMTRADE solution accelerator and to provide access to configuration information for the notebooks supporting it.  This notebook was developed on a **Databricks ML 12.2 LTS** cluster {using x type of worker/node config}. This notebook is also available at https://github.com/databricks-industry-solutions/comtrade-accelerator.
 
 # COMMAND ----------
 
 # MAGIC %md ##Introduction
-# MAGIC 
+# MAGIC
 # MAGIC In this solution accelerator, we will show how electric signal data captured in the COMTRADE format can be read using a Databricks cluster.  To help illustrate the potential of using Databricks for this work (besides its ability to process a large volume of data a timely manner through the power of distributed processing), we will use the data read from COMTRADE format to standard table objects to train a fault detection model.
 
 # COMMAND ----------
@@ -53,7 +53,7 @@ mlflow.set_experiment('/Users/{}/comtrade'.format(username))
 # COMMAND ----------
 
 # MAGIC %md © 2023 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License. All included or referenced third party libraries are subject to the licenses set forth below.
-# MAGIC 
+# MAGIC
 # MAGIC | library                                | description             | license    | source                                              |
 # MAGIC |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
 # MAGIC | comtrade | A module designed to read Common Format for Transient Data Exchange (COMTRADE) file format |  MIT | https://pypi.org/project/comtrade/                       |

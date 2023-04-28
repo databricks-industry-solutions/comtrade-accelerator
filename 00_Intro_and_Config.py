@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %md The purpose of this notebook is to introduce the COMTRADE solution accelerator and to provide access to configuration information for the notebooks supporting it.  This notebook was developed on a **Databricks ML 12.2 LTS** cluster {using x type of worker/node config}. This notebook is also available at https://github.com/databricks-industry-solutions/comtrade-accelerator.
+# MAGIC %md The purpose of this notebook is to introduce the COMTRADE solution accelerator and to provide access to configuration information for the notebooks supporting it. This notebook is also available at https://github.com/databricks-industry-solutions/comtrade-accelerator.
 
 # COMMAND ----------
 

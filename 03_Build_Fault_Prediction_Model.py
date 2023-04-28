@@ -172,7 +172,7 @@ print('Testing:    ', test_signals.shape[0])
 # DBTITLE 1,Define Model for Fault Prediction
 def create_convolutional_classification_model() -> tf.keras.Model:
     
-    #tf.random.set_seed(13) // why not keep this?
+    tf.random.set_seed(13)
 
     inp = tf.keras.Input(shape=[readings_per_file,3])
     pipe = tf.keras.layers.Conv1D(16, 3, activation="relu", padding="same") (inp)

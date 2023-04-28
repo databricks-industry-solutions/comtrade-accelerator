@@ -54,18 +54,12 @@ pipeline_json = {
             }
         }
     ],
-    "name": "Fault Detection",
+    "name": "SOLACC COMTRADE Fault Detection",
     "storage": f"/databricks_solacc/fault_detection/dlt",
     "target": "solacc_fault_detection"
 }
 
 # COMMAND ----------
-
-# am getting error here when simply running RUNME
-
-# ```
-# DatabricksApiException: DatabricksApiException(message="Cannot modify storage location of an existing pipeline. Existing storage location: 'dbfs:/pipelines/3869e799-1280-4668-a280-85a6cc7f79ae'. Requested storage location: '/databricks_solacc/fault_detection/dlt'", http_code=400, http_exception=HTTPError('400 Client Error: Bad Request for url: https://oregon.cloud.databricks.com/api/2.0/pipelines/3869e799-1280-4668-a280-85a6cc7f79ae\n Response from server: \n { \'error_code\': \'INVALID_PARAMETER_VALUE\',\n  \'message\': \'Cannot modify storage location of an existing pipeline. Existing \'\n             \'storage location: \'\n             "\'dbfs:/pipelines/3869e799-1280-4668-a280-85a6cc7f79ae\'. "\n             \'Requested storage location: \'\n             "\'/databricks_solacc/fault_detection/dlt\'"}'))
-# ```
 
 pipeline_id = NotebookSolutionCompanion().deploy_pipeline(pipeline_json, "", spark)
 

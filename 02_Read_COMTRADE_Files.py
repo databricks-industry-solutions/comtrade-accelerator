@@ -161,17 +161,15 @@ def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes) -> str:
 # MAGIC %md There's a lot going on in the function above.  You can read more about the individual comtrade object methods and attributes in the [comtrade library's online documentation](https://github.com/dparrini/python-comtrade), though the documentation is a bit sparse.  The key thing to take from this is that we will be returned a JSON string with the following keys: 
 # MAGIC </p>
 # MAGIC
-# MAGIC @Nicole, should these be enclosed in backticks `station_name` ?
-# MAGIC
-# MAGIC * station_name - name of the substation location
-# MAGIC * rec_dev_id - identification number or name of the device
-# MAGIC * frequency -  nominal line frequency in Hz
-# MAGIC * microseconds - the microseconds timestamp associated with the analog readings
-# MAGIC * analog - analog readings as a list of lists of floating point values
-# MAGIC * analog_units - units associated with analog readings, e.g. amperes
-# MAGIC * analog_channel_names - the names of the channels for which readings are recorded
-# MAGIC * status - status readings for the different channels
-# MAGIC * status_channel_names - the names of the status channels
+# MAGIC * `station_name` - name of the substation location
+# MAGIC * `rec_dev_id` - identification number or name of the device
+# MAGIC * `frequency` -  nominal line frequency in Hz
+# MAGIC * `microseconds` - the microseconds timestamp associated with the analog readings
+# MAGIC * `analog` - analog readings as a list of lists of floating point values
+# MAGIC * `analog_units` - units associated with analog readings, e.g. amperes
+# MAGIC * `analog_channel_names` - the names of the channels for which readings are recorded
+# MAGIC * `status` - status readings for the different channels
+# MAGIC * `status_channel_names` - the names of the status channels
 # MAGIC
 # MAGIC **NOTE** See Appendix A in [this document](https://ckm-content.se.com/ckmContent/sfc/servlet.shepherd/document/download/0691H00000GYrXeQAL) for additional information about these and other fields in the COMTRADE format specification.
 
@@ -231,7 +229,7 @@ _ = (
     .saveAsTable('metadata')
   )
 
-display(spark.table('metadata'))
+display(spark.table('metadata').limit(10))
 
 # COMMAND ----------
 
@@ -277,7 +275,7 @@ _ = (
   )
 
 
-display(spark.table('readings'))
+display(spark.table('readings').limit(10))
 
 # COMMAND ----------
 

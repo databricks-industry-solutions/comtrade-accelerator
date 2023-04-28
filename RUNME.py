@@ -1,24 +1,24 @@
 # Databricks notebook source
 # MAGIC %md This notebook sets up the companion cluster(s) to run the solution accelerator. It also creates the Workflow to illustrate the order of execution. Happy exploring! 
 # MAGIC 🎉
-# MAGIC 
+# MAGIC
 # MAGIC **Steps**
 # MAGIC 1. Simply attach this notebook to a cluster and hit Run-All for this notebook. A multi-step job and the clusters used in the job will be created for you and hyperlinks are printed on the last block of the notebook. 
-# MAGIC 
+# MAGIC
 # MAGIC 2. Run the accelerator notebooks: Feel free to explore the multi-step job page and **run the Workflow**, or **run the notebooks interactively** with the cluster to see how this solution accelerator executes. 
-# MAGIC 
+# MAGIC
 # MAGIC     2a. **Run the Workflow**: Navigate to the Workflow link and hit the `Run Now` 💥. 
 # MAGIC   
 # MAGIC     2b. **Run the notebooks interactively**: Attach the notebook with the cluster(s) created and execute as described in the `job_json['tasks']` below.
-# MAGIC 
+# MAGIC
 # MAGIC **Prerequisites** 
 # MAGIC 1. You need to have cluster creation permissions in this workspace.
-# MAGIC 
+# MAGIC
 # MAGIC 2. In case the environment has cluster-policies that interfere with automated deployment, you may need to manually create the cluster in accordance with the workspace cluster policy. The `job_json` definition below still provides valuable information about the configuration these series of notebooks should run with. 
-# MAGIC 
+# MAGIC
 # MAGIC **Notes**
 # MAGIC 1. The pipelines, workflows and clusters created in this script are not user-specific. Keep in mind that rerunning this script again after modification resets them for other users too.
-# MAGIC 
+# MAGIC
 # MAGIC 2. If the job execution fails, please confirm that you have set up other environment dependencies as specified in the accelerator notebooks. Accelerators may require the user to set up additional cloud infra or secrets to manage credentials. 
 
 # COMMAND ----------
@@ -60,6 +60,12 @@ pipeline_json = {
 }
 
 # COMMAND ----------
+
+# am getting error here when simply running RUNME
+
+# ```
+# DatabricksApiException: DatabricksApiException(message="Cannot modify storage location of an existing pipeline. Existing storage location: 'dbfs:/pipelines/3869e799-1280-4668-a280-85a6cc7f79ae'. Requested storage location: '/databricks_solacc/fault_detection/dlt'", http_code=400, http_exception=HTTPError('400 Client Error: Bad Request for url: https://oregon.cloud.databricks.com/api/2.0/pipelines/3869e799-1280-4668-a280-85a6cc7f79ae\n Response from server: \n { \'error_code\': \'INVALID_PARAMETER_VALUE\',\n  \'message\': \'Cannot modify storage location of an existing pipeline. Existing \'\n             \'storage location: \'\n             "\'dbfs:/pipelines/3869e799-1280-4668-a280-85a6cc7f79ae\'. "\n             \'Requested storage location: \'\n             "\'/databricks_solacc/fault_detection/dlt\'"}'))
+# ```
 
 pipeline_id = NotebookSolutionCompanion().deploy_pipeline(pipeline_json, "", spark)
 

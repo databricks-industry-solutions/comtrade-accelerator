@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 # MAGIC </p>
 # MAGIC
 # MAGIC * `path`: a string representing the full name of the file
-# MAGIC * `modificationTime`: a timestamp value representing the date teh file was last modified
+# MAGIC * `modificationTime`: a timestamp value representing the date the file was last modified
 # MAGIC * `length`: a long integer value representing the number of bytes associated with the file
 # MAGIC * `content`: a binary value representing the file's contents
 # MAGIC
@@ -164,7 +164,7 @@ def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes) -> str:
 # MAGIC * `station_name` - name of the substation location
 # MAGIC * `rec_dev_id` - identification number or name of the device
 # MAGIC * `frequency` -  nominal line frequency in Hz
-# MAGIC * `microseconds` - the microseconds timestamp associated with the analog readings
+# MAGIC * `microseconds` - the microseconds timestamp associated with the analog and status readings
 # MAGIC * `analog` - analog readings as a list of lists of floating point values
 # MAGIC * `analog_units` - units associated with analog readings, e.g. amperes
 # MAGIC * `analog_channel_names` - the names of the channels for which readings are recorded

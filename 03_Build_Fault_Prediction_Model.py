@@ -373,7 +373,7 @@ mlflow.tensorflow.log_model(
 
 # DBTITLE 1,Move Model to Production Status
 client = mlflow.tracking.MlflowClient()
-model_version = client.search_model_versions(f"name='fault_detection'")[0].version
+model_version = client.search_model_versions(f"name='{config['model_name']}'")[0].version
 
 # move model version to production
 client.transition_model_version_stage(

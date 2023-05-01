@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install comtrade orjson mlflow tensorflow
+# MAGIC %pip install comtrade mlflow tensorflow
 
 # COMMAND ----------
 
@@ -35,7 +35,6 @@ import pickle
 import numpy as np
 import datetime
 from typing import Iterator, List
-import orjson
 import matplotlib.pyplot as plt
 import dlt
 import mlflow
@@ -187,7 +186,7 @@ def joined_files_bronze():
 
 # DBTITLE 1,Define Function to Convert COMTRADE Data to JSON
 @udf('string')
-def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes):
+def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes) -> str:
 
   # initialize comtrade object
   ct = Comtrade()

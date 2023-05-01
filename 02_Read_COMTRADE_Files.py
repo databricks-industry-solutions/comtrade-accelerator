@@ -283,7 +283,13 @@ display(spark.table('readings').limit(10))
 
 # COMMAND ----------
 
-# MAGIC %md As we did in the last notebook, we might plot one of the COMTRADE files to verify its data has been captured appropriately. The COMTRADE file we use as example here is the same one we downloaded in Notebook 01_Explore_Data.
+# MAGIC %md As we did in the last notebook, we might plot one of the COMTRADE files to verify its data has been captured appropriately. The COMTRADE file we use as example here is the same one we downloaded in Notebook `01_Explore_Data`.
+
+# COMMAND ----------
+
+# DBTITLE 1,Let's download a pair of .dat and .cfg files so that we can inspect locally
+!wget --no-check-certificate --no-proxy -O /databricks/driver/cap1f_01.cfg https://db-gtm-industry-solutions.s3.amazonaws.com/data/rcg/comtrade/source/capacitor+switching/cap1f_01.cfg 
+!wget --no-check-certificate --no-proxy -O /databricks/driver/cap1f_01.dat https://db-gtm-industry-solutions.s3.amazonaws.com/data/rcg/comtrade/source/capacitor+switching/cap1f_01.dat
 
 # COMMAND ----------
 

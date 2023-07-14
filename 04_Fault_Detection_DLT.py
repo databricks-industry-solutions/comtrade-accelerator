@@ -4,17 +4,17 @@
 # COMMAND ----------
 
 # MAGIC %md ## Deploy the Model
-# MAGIC 
-# MAGIC 
+# MAGIC
+# MAGIC
 # MAGIC With our model in MLflow, it can easily be deployed in a variety of scenarios.  The one that most immediately comes to mind is one within which COMTRADE data are delivered from electrical providers as part of their fault management processes.  These files may be processed upon receipt in real-time using Databricks [Auto Loader](https://docs.databricks.com/ingestion/auto-loader/index.html) and [Delta Live Table](https://docs.databricks.com/delta-live-tables/index.html) logic that persists the data to Delta Lake tables and [presented to the latest production instance of our fault detection model](https://docs.databricks.com/delta-live-tables/transform.html#use-mlflow-models-in-a-delta-live-tables-pipeline) to determine if a fault has occurred. From there, Databricks may send a message to any number of [downstream systems](https://docs.databricks.com/external-data/index.html) in order to notify them of the occurrence.
 # MAGIC </p>
-# MAGIC 
+# MAGIC
 # MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/arch.png' width=800>
 # MAGIC </p>
-# MAGIC 
-# MAGIC In this notebook, we combine all the ETL steps from notebook 02 with the ML model trained in notebook 03 to build a DLT pipeline for end-to-end model inference. 
+# MAGIC
+# MAGIC In this notebook, we use a DLT to orchestrate the fault detection pipeline end-to-end. We combine all the ETL steps from notebook 02 with the ML model trained in notebook 03 to build a DLT pipeline for end-to-end model inference. 
 # MAGIC **Do not run this notebook interactively** - it will fail on the block below on `import dlt`. This notebook would only run as part of a DLT pipeline. 
-# MAGIC 
+# MAGIC
 # MAGIC See the end of this notebook for instructions to set up the DLT pipeline using UI. Alternatively, if you use the RUNME notebook to create a Workflow for this accelerator, the DLT pipeline will be created for you as the last step in the Workflow. 
 
 # COMMAND ----------
@@ -84,7 +84,7 @@ model_name = "fault_detection"
 
 # MAGIC %md
 # MAGIC # Bronze : Raw File Extractions
-# MAGIC 
+# MAGIC
 # MAGIC The logic of the bronze layer tables below are elaborated in Notebook 02.
 
 # COMMAND ----------
@@ -179,7 +179,7 @@ def joined_files_bronze():
 
 # MAGIC %md
 # MAGIC # Silver : Comtrade Processing
-# MAGIC 
+# MAGIC
 # MAGIC The logic of the silver tables below are explained in detail in notebook 02.
 
 # COMMAND ----------
@@ -354,7 +354,7 @@ def comtrade_metadata_silver():
 
 # MAGIC %md
 # MAGIC In this step, we create separate columns for `IA`, `IB` and `IC` channels similar to how one *pivots* a table. 
-# MAGIC 
+# MAGIC
 # MAGIC As of today <a href = "https://docs.databricks.com/workflows/delta-live-tables/delta-live-tables-python-ref.html?_ga=2.22595967.59249201.1678131937-1347012581.1661879485#limitations">`.pivot` is not supported in DLT</a>, as DLT does not support any operations where table values impacts the schema of subsequent tables. However, in our case, because there are a set number of potential channels (3), and the data for each COMTRADE is small enough, we can define a function to use with `applyInPandas` that is compatible with DLT to circumvent this problem.
 
 # COMMAND ----------
@@ -412,11 +412,11 @@ def pivoted_current_silver():
 
 # MAGIC %md
 # MAGIC ## Inference function
-# MAGIC 
+# MAGIC
 # MAGIC From the registry, we can retrieve the production version of our fault detection model and create an inference function with the model.
-# MAGIC 
+# MAGIC
 # MAGIC We broadcast the model and load the model from the broadcasted variable in the pandas UDF. This technique further improves the efficiency of loading a model from the registry: the model is loaded from mlflow model registry only once and then copied to cluster workers via a broadcast variable.
-# MAGIC 
+# MAGIC
 # MAGIC We use an a Pandas UDF with Iterator support for our inference function to further reduce the number of times we need to load a model from registry. This pandas UDF type is useful when the UDF execution requires initializing some state, for example, loading a machine learning model file to apply inference to every input batch. 
 
 # COMMAND ----------
@@ -472,23 +472,23 @@ def electrical_fault_detection_gold():
 
 # DBTITLE 1,DLT Deployment
 # MAGIC %md We recommemnd you use the RUNME notebook to automate the creation of the Workflow for this accelerator - the DLT pipeline is the last step in the automated Workflow.
-# MAGIC 
+# MAGIC
 # MAGIC Alternatively, we can configure the DLT pipeline using the UI according to the screenshots below. 
-# MAGIC 
+# MAGIC
 # MAGIC * In the *Create Pipeline* dialog, we select *04_Fault_Detection_DLT*.
-# MAGIC 
+# MAGIC
 # MAGIC * Under *Target*, we specify the name of the database within which DLT objects created in these workflows should reside. Enter `solacc_fault_detection`.
-# MAGIC 
+# MAGIC
 # MAGIC * Under *Storage Location*, we specify the storage location where object data and metadata of the DLT will be placed. For a matching example to the automated DLT, enter `/databricks_solacc/fault_detection/dlt`.
-# MAGIC 
+# MAGIC
 # MAGIC Under *Pipeline Mode*, we specify how the cluster that runs our job will be managed.  If we select *Triggered*, the cluster shuts down with each cycle.  As several of our DLT objects are configured to run continously, we should select *Continous* mode. In our DLT object definitions, we leveraged some throttling techniques to ensure our workflows do not become overwhelmed with data.  Still, there will be some variability in terms of data moving through our pipelines so we might specify a minimum and maximum number of workers within a reasonable range based on our expectations for the data.  Once deployed, we might monitor resource utilization to determine if this range should be adjusted.
-# MAGIC 
+# MAGIC
 # MAGIC **NOTE** Continous jobs will run indefinetly until explicitly stopped.  Please be aware of this as you manage your DLT pipelines.
-# MAGIC 
+# MAGIC
 # MAGIC Clicking *Create* we now have defined the jobs for our DLT workflow. You can compare the `Settings` of the created pipeline with the standard settings. Below are the standard settings our RUNME automation notebook uses:
-# MAGIC 
+# MAGIC
 # MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt-config2.png' width=800>
-# MAGIC 
+# MAGIC
 # MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt-config.png' width=800>
 
 # COMMAND ----------
@@ -496,13 +496,13 @@ def electrical_fault_detection_gold():
 # DBTITLE 1,DLT Monitoring
 # MAGIC %md
 # MAGIC After running the overall Workflow created by the RUNME notebook, or after running the individual notebooks interactively in order and then running the DLT pipeline, you should see the following 
-# MAGIC 
+# MAGIC
 # MAGIC <img src='https://github.com/databricks-industry-solutions/comtrade-accelerator/raw/main/images/dlt.png' width=800>
-# MAGIC 
+# MAGIC
 # MAGIC Each box represents a table we define with `@dlt.table` in this notebook. Each table contains stats for execution duration, record count, and optionally data quality information.
-# MAGIC 
+# MAGIC
 # MAGIC The connections between the items indicate the dependencies between objects.  Color coding indicates the status of the tables in the pipeline. Should an error be encountered, event information at the bottom of the UI would reflect this.  Clicking on the error event would then expose error messages with which the problem could be diagnosed.
-# MAGIC 
+# MAGIC
 # MAGIC When the job initialy runs, it will run in *Development* mode as indicated at the top of the UI.  In Development mode, any errors will cause the job to be stopped so that they may be corrected. By clicking *Production*, the job is moved into a state where jobs are restarted upon error.
 
 # COMMAND ----------
@@ -512,7 +512,7 @@ def electrical_fault_detection_gold():
 # COMMAND ----------
 
 # MAGIC %md © 2023 Databricks, Inc. All rights reserved. The source in this notebook is provided subject to the Databricks License. All included or referenced third party libraries are subject to the licenses set forth below.
-# MAGIC 
+# MAGIC
 # MAGIC | library                                | description             | license    | source                                              |
 # MAGIC |----------------------------------------|-------------------------|------------|-----------------------------------------------------|
 # MAGIC | comtrade | A module designed to read Common Format for Transient Data Exchange (COMTRADE) file format |  MIT | https://pypi.org/project/comtrade/                       |

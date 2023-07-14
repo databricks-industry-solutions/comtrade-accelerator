@@ -6,7 +6,7 @@
 ## Business Problem
 The [COMTRADE format](https://ieeexplore.ieee.org/document/6512503) is the standard for the interchange of various types of fault, test, and simulation data, defined by the [Institute of Electrical and Electronic Engineers (IEEE)](https://www.ieee.org/). This format is widely used in a number of analytic applications, making it critical that we demonstrate how such data can be processed in Databricks.
 
-In this solution accelerator, we will show how electric signal data captured in the COMTRADE format can be processed in a distributed manner using a Databricks cluster. We create a streaming pipeline for electric utilities providers to detect faults.
+In this solution accelerator, we will show how electric signal data captured in the COMTRADE format can be processed in a distributed manner using a Databricks cluster. We explore data in notebook 01, build an ETL pipeline in 02 and train a fault detection model in 03. In notebook 04, we use a DLT TO create a streaming pipeline and orchestrate the fault detection pipeline end-to-end, covering all the functionalities from the other notebooks
 
 ___
 <colton.peltier@databricks.com>,  <eric.golinko@databricks.com>, <bryan.smith@databricks.com>

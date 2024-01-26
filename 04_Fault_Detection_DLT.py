@@ -1,5 +1,5 @@
 # Databricks notebook source
-# MAGIC %pip install comtrade mlflow tensorflow
+# MAGIC %pip install comtrade==0.0.10 mlflow tensorflow
 
 # COMMAND ----------
 
@@ -211,7 +211,7 @@ def get_comtrade_as_json(cfg_content: bytes, dat_content: bytes) -> str:
   ct_dict[FREQ] = ct.frequency
   ct_dict[REC_DEV_ID] = ct.rec_dev_id
   ct_dict[STATION_NAME] = ct.station_name
-  ct_dict[TIME_MICRO] = [int(ct.start_timestamp.timestamp()) + int(second * 1e6) for second in ct.time]
+  ct_dict[TIME] = [int(ct.start_timestamp.timestamp()) + int(second * 1e6) for second in ct.time]
 
   # process analog channel info
   if ct.analog_count > 0:
@@ -264,7 +264,8 @@ COMTRADE_SILVER_TABLE = "comtrade_json_silver"
 @dlt.table(
     name=COMTRADE_SILVER_TABLE,
     comment="Processed Comtrade JSON",
-    table_properties={"quality" : "silver"}
+    table_properties={"quality" : "silver"},
+    partition_cols=["station_name"]
 )
 def comtrade_json_silver():
     return (
@@ -274,8 +275,9 @@ def comtrade_json_silver():
         .withColumn("parsed_json", F.from_json(F.col("string_json"), json_schema))
         .select("*", "parsed_json.*")
         .drop("parsed_json")
-        .withColumn(TIME, F.transform(TIME, lambda x : F.to_timestamp(x / 1e6)))
+        .withColumn(TIME, F.transform(TIME, lambda x : F.to_timestamp(x)))
         .withColumn("processed_timestamp", F.current_timestamp())
+        .drop("string_json")
     )
 
 # COMMAND ----------

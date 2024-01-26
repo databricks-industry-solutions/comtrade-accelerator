@@ -3,7 +3,7 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install comtrade
+# MAGIC %pip install comtrade==0.0.10
 
 # COMMAND ----------
 
